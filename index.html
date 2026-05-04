@@ -38,6 +38,21 @@
 html, body { height: 100%; }
 body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
 
+/* LOGIN */
+.login-screen { position: fixed; inset: 0; background: var(--text); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.login-box { background: #fff; border-radius: 16px; padding: 40px 40px 36px; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.login-logo { margin-bottom: 28px; }
+.login-logo h1 { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.5px; }
+.login-logo p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.login-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.login-field label { font-size: 12px; font-weight: 600; color: var(--text2); letter-spacing: 0.2px; }
+.login-field input { font-family: var(--font); font-size: 14px; background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 13px; color: var(--text); transition: border-color 0.15s; width: 100%; }
+.login-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.12); }
+.login-btn { width: 100%; padding: 11px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; font-family: var(--font); margin-top: 6px; transition: background 0.15s; }
+.login-btn:hover { background: var(--accent-text); }
+.login-error { background: var(--red-light); color: var(--red); border: 1px solid #fca5a5; border-radius: var(--radius-sm); padding: 10px 13px; font-size: 13px; margin-top: 12px; display: none; }
+.login-error.show { display: block; }
+
 /* LAYOUT */
 .app { display: flex; height: 100vh; overflow: hidden; }
 .sidebar { width: 220px; min-width: 220px; background: var(--text); display: flex; flex-direction: column; overflow-y: auto; }
@@ -173,7 +188,27 @@ textarea { resize: vertical; min-height: 72px; }
 </head>
 <body>
 
-<div class="app">
+<!-- TELA DE LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>StockPro</h1>
+      <p>Faça login para acessar o sistema</p>
+    </div>
+    <div class="login-field">
+      <label>Usuário</label>
+      <input type="text" id="login-user" placeholder="Digite o usuário" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')fazerLogin()">
+    </div>
+    <button class="login-btn" onclick="fazerLogin()">Entrar</button>
+    <div class="login-error" id="login-error">Usuário ou senha incorretos. Tente novamente.</div>
+  </div>
+</div>
+
+<div class="app" id="app-main" style="display:none">
   <!-- SIDEBAR -->
   <nav class="sidebar">
     <div class="sidebar-logo">
@@ -192,7 +227,10 @@ textarea { resize: vertical; min-height: 72px; }
     <div class="nav-item" onclick="goto('fornecedores')"><span class="ico">◈</span><span>Fornecedores</span></div>
     <div class="sidebar-section">Análise</div>
     <div class="nav-item" onclick="goto('relatorio')"><span class="ico">▤</span><span>Relatórios</span></div>
-    <div class="sidebar-bottom"><p>StockPro v2.0</p></div>
+    <div class="sidebar-bottom">
+      <p style="margin-bottom:8px">StockPro v2.0</p>
+      <button onclick="sair()" style="width:100%;padding:7px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:rgba(255,255,255,0.5);font-size:12px;cursor:pointer;font-family:var(--font)">Sair da conta</button>
+    </div>
   </nav>
 
   <div class="main">
@@ -833,6 +871,42 @@ function renderRelatorio(){
   // Estoque atual
   const rest=document.getElementById('rel-estoque');
   rest.innerHTML=db.produtos.length?db.produtos.map(p=>`<tr><td>${p.nome}</td><td>${p.qtd}</td><td>${fmt(p.custo)}</td><td style="font-weight:500">${fmt(p.custo*p.qtd)}</td></tr>`).join(''):'<tr class="empty-row"><td colspan="4">Sem produtos</td></tr>';
+}
+
+// ===== LOGIN =====
+const LOGIN_USER = 'admin';
+const LOGIN_PASS = 'estoque123';
+
+function fazerLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const erro = document.getElementById('login-error');
+  if (u === LOGIN_USER && p === LOGIN_PASS) {
+    sessionStorage.setItem('logado', '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-main').style.display = 'flex';
+    renderDash();
+  } else {
+    erro.classList.add('show');
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+  }
+}
+
+function sair() {
+  if (!confirm('Deseja sair do sistema?')) return;
+  sessionStorage.removeItem('logado');
+  document.getElementById('app-main').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').classList.remove('show');
+}
+
+// Verificar se já está logado
+if (sessionStorage.getItem('logado') === '1') {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-main').style.display = 'flex';
 }
 
 // ===== INIT =====
